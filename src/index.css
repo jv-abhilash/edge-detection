@@ -186,8 +186,12 @@ button {
 .camera-canvas {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+}
+
+.camera-canvas.mirrored {
+  transform: scaleX(-1);
 }
 
 .camera-topbar {
@@ -234,6 +238,132 @@ button {
   padding: 6px 12px;
   min-width: 52px;
   text-align: center;
+}
+
+.icon-rotate {
+  transform: rotate(var(--counter-rotate, 0deg));
+  transition: transform 0.25s ease;
+  display: inline-block;
+}
+
+.orientation-badge {
+  position: absolute;
+  top: 64px;
+  right: 16px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+  background: rgba(20,17,15,0.6);
+  border: 1px solid var(--amber-dim);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.capture-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0.85;
+  animation: flash-fade 150ms ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes flash-fade {
+  from { opacity: 0.85; }
+  to { opacity: 0; }
+}
+
+.threshold-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 108px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0));
+}
+
+.threshold-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.threshold-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+  width: 32px;
+  text-transform: uppercase;
+}
+
+.threshold-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--amber);
+  height: 4px;
+}
+
+.threshold-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--cream);
+  width: 30px;
+  text-align: right;
+}
+
+.shutter-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 108px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.2));
+}
+
+.shutter-spacer {
+  width: 44px;
+}
+
+.flip-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(20,17,15,0.6);
+  border: 1px solid var(--line);
+  color: var(--cream);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shutter-btn {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: transparent;
+  border: 3px solid var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+}
+
+.shutter-btn:active {
+  transform: scale(0.92);
+}
+
+.shutter-btn-inner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--amber);
 }
 
 .camera-error {
