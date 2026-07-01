@@ -19,8 +19,16 @@ export default function CameraView({ onBack }) {
   const [facingMode, setFacingMode] = useState('environment')
 
   const orientationRef = useRef(0)
+  const tiltHandlerRef = useRef(null)
   const [orientationAngle, setOrientationAngle] = useState(0)
   const [rawTilt, setRawTilt] = useState({ beta: null, gamma: null })
+  const [tiltEventCount, setTiltEventCount] = useState(0)
+  const [debugLogs, setDebugLogs] = useState([])
+
+  function pushLog(msg) {
+    console.log(msg)
+    setDebugLogs((prev) => [...prev.slice(-7), msg])
+  }
 
   const cvReady = useOpenCv()
   const [status, setStatus] = useState('requesting')
@@ -29,22 +37,70 @@ export default function CameraView({ onBack }) {
   const [flash, setFlash] = useState(false)
 
   useEffect(() => {
-    function updateOrientation() {
-      let angle = screen.orientation?.angle
-      if (angle === undefined) {
-        angle = window.orientation !== undefined ? (window.orientation + 360) % 360 : 0
+    pushLog(`env: hasDOE=${typeof DeviceOrientationEvent !== 'undefined'} inWindow=${'ondeviceorientation' in window} secure=${window.isSecureContext}`)
+
+    function handleTilt(event) {
+      const { beta, gamma } = event
+      setTiltEventCount((c) => c + 1)
+      if (beta === null || gamma === null) return
+      setRawTilt({ beta: Math.round(beta), gamma: Math.round(gamma) })
+
+      let angle = 0
+      if (gamma >= 45) {
+        angle = 90
+      } else if (gamma <= -45) {
+        angle = 270
+      } else if (beta !== null && beta < 0) {
+        angle = 180
+      } else {
+        angle = 0
       }
+
       orientationRef.current = angle
       setOrientationAngle(angle)
     }
-    updateOrientation()
-    window.addEventListener('orientationchange', updateOrientation)
-    screen.orientation?.addEventListener?.('change', updateOrientation)
+
+    tiltHandlerRef.current = handleTilt
+
+    function attachListener() {
+      window.addEventListener('deviceorientation', handleTilt)
+      window.addEventListener('deviceorientationabsolute', handleTilt)
+      pushLog('listeners attached')
+    }
+
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      pushLog('requestPermission gate detected, awaiting tap')
+    } else {
+      pushLog('no requestPermission gate, attaching directly on mount')
+      attachListener()
+    }
+
     return () => {
-      window.removeEventListener('orientationchange', updateOrientation)
-      screen.orientation?.removeEventListener?.('change', updateOrientation)
+      window.removeEventListener('deviceorientation', handleTilt)
+      window.removeEventListener('deviceorientationabsolute', handleTilt)
     }
   }, [])
+
+  function handleEnableMotion() {
+    pushLog('manual enable tapped')
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission()
+        .then((state) => {
+          pushLog(`permission result: ${state}`)
+          if (state === 'granted' && tiltHandlerRef.current) {
+            window.addEventListener('deviceorientation', tiltHandlerRef.current)
+            window.addEventListener('deviceorientationabsolute', tiltHandlerRef.current)
+          }
+        })
+        .catch((err) => pushLog(`permission error: ${err}`))
+    } else if (tiltHandlerRef.current) {
+      window.addEventListener('deviceorientation', tiltHandlerRef.current)
+      window.addEventListener('deviceorientationabsolute', tiltHandlerRef.current)
+      pushLog('re-attached from tap (no permission gate)')
+    }
+  }
 
   useEffect(() => {
     if (!cvReady) return
@@ -106,35 +162,16 @@ export default function CameraView({ onBack }) {
 
           cv.Canny(blurred, edges, lowThreshRef.current, highThreshRef.current)
 
-          const angle = orientationRef.current
-          let display = edges
-          let rotatedSeparately = false
-
-          if (angle === 90) {
-            display = new cv.Mat()
-            cv.rotate(edges, display, cv.ROTATE_90_COUNTERCLOCKWISE)
-            rotatedSeparately = true
-          } else if (angle === 270) {
-            display = new cv.Mat()
-            cv.rotate(edges, display, cv.ROTATE_90_CLOCKWISE)
-            rotatedSeparately = true
-          } else if (angle === 180) {
-            display = new cv.Mat()
-            cv.rotate(edges, display, cv.ROTATE_180)
-            rotatedSeparately = true
+          if (outputCanvas.width !== edges.cols || outputCanvas.height !== edges.rows) {
+            outputCanvas.width = edges.cols
+            outputCanvas.height = edges.rows
           }
-
-          if (outputCanvas.width !== display.cols || outputCanvas.height !== display.rows) {
-            outputCanvas.width = display.cols
-            outputCanvas.height = display.rows
-          }
-          cv.imshow(outputCanvas, display)
+          cv.imshow(outputCanvas, edges)
 
           src.delete()
           gray.delete()
           blurred.delete()
           edges.delete()
-          if (rotatedSeparately) display.delete()
 
           frameCountRef.current += 1
           const now = performance.now()
@@ -179,7 +216,29 @@ export default function CameraView({ onBack }) {
     const outputCanvas = outputCanvasRef.current
     if (!outputCanvas) return
 
-    const dataUrl = outputCanvas.toDataURL('image/png')
+    const angle = orientationRef.current
+    let saveCanvas = outputCanvas
+
+    if (angle !== 0) {
+      const srcMat = cv.imread(outputCanvas)
+      const rotatedMat = new cv.Mat()
+      const rotateFlag =
+        angle === 90 ? cv.ROTATE_90_CLOCKWISE :
+        angle === 270 ? cv.ROTATE_90_COUNTERCLOCKWISE :
+        cv.ROTATE_180
+      cv.rotate(srcMat, rotatedMat, rotateFlag)
+
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = rotatedMat.cols
+      tempCanvas.height = rotatedMat.rows
+      cv.imshow(tempCanvas, rotatedMat)
+
+      srcMat.delete()
+      rotatedMat.delete()
+      saveCanvas = tempCanvas
+    }
+
+    const dataUrl = saveCanvas.toDataURL('image/png')
     const link = document.createElement('a')
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     link.download = `edge-detection-${timestamp}.png`
@@ -214,9 +273,19 @@ export default function CameraView({ onBack }) {
       </div>
 
       {status === 'ready' && (
-        <span className="orientation-badge icon-rotate" style={counterRotateStyle}>
-          {orientationAngle}° · β{rawTilt.beta ?? '–'} γ{rawTilt.gamma ?? '–'}
-        </span>
+        <div className="debug-stack">
+          <span className="orientation-badge">
+            {orientationAngle}° · β{rawTilt.beta ?? '–'} γ{rawTilt.gamma ?? '–'} · n={tiltEventCount}
+          </span>
+          <button className="enable-motion-btn" onClick={handleEnableMotion}>
+            Enable motion
+          </button>
+          <div className="debug-log-panel">
+            {debugLogs.map((line, i) => (
+              <div key={i} className="debug-log-line">{line}</div>
+            ))}
+          </div>
+        </div>
       )}
 
       {status === 'ready' && (
