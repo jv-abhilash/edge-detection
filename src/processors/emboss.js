@@ -2,6 +2,8 @@ export const emboss = {
   key: 'emboss',
   label: 'Emboss',
   category: 'nonml',
+  tier: 'pixel',
+  info: 'A directional convolution kernel (negative weights one side, positive the other) — flat regions cancel toward mid-gray, sharp edges produce a raised/carved look.',
   needsThresholds: false,
   run(cv, { gray }) {
     const kernel = cv.matFromArray(3, 3, cv.CV_32FC1, [

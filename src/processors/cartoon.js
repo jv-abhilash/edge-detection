@@ -5,6 +5,8 @@ export const cartoon = {
   key: 'cartoon',
   label: 'Cartoon',
   category: 'nonml',
+  tier: 'spatial',
+  info: 'Bilateral filter smooths color while preserving edges, combined with an adaptive-threshold outline mask. Downscaled and frame-skipped here for real-time speed.',
   needsThresholds: false,
   run(cv, { src, gray }) {
     frameCounter++

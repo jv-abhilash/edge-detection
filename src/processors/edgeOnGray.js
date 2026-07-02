@@ -3,6 +3,8 @@ export const edgeOnGray = {
   label: 'Edges on Gray',
   needsThresholds: true,
   category: 'nonml',
+  tier: 'spatial',
+  info: 'Same Canny pipeline as Edge Detection, but the highlight is painted onto the live grayscale feed instead of a black background — useful for seeing edges in context.',
   run(cv, { gray, blurred, lowThresh, highThresh }) {
     const edges = new cv.Mat()
     cv.Canny(blurred, edges, lowThresh, highThresh)

@@ -3,6 +3,8 @@ export const contours = {
   label: 'Contours',
   needsThresholds: true,
   category: 'nonml',
+  tier: 'spatial',
+  info: 'findContours traces closed/open boundaries from the Canny edge map — a step beyond raw edges, since a contour is an actual traceable shape outline you could measure or filter.',
   run(cv, { blurred, src, lowThresh, highThresh }) {
     const edges = new cv.Mat()
     cv.Canny(blurred, edges, lowThresh, highThresh)

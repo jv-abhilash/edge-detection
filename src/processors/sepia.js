@@ -2,6 +2,8 @@ export const sepia = {
   key: 'sepia',
   label: 'Sepia',
   category: 'nonml',
+  tier: 'pixel',
+  info: 'A fixed 3x3 color-transform matrix (each output channel is a weighted mix of input R/G/B) — the same idea as the grayscale weighted-sum, tuned for a warm sepia tone instead of one channel.',
   needsThresholds: false,
   run(cv, { src }) {
     const rgb = new cv.Mat()

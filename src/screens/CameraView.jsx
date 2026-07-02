@@ -9,6 +9,7 @@ export default function CameraView({ mode = 'edge', onBack }) {
 
   useEffect(() => {
     activeProcessorRef.current = processors[mode] || processors.edge
+    activeProcessorRef.current.reset?.()
   }, [mode])
 
   const videoRef = useRef(null)
