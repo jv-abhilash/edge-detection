@@ -4,13 +4,13 @@ import CameraView from './screens/CameraView.jsx'
 import './App.css'
 
 function App() {
-  const [screen, setScreen] = useState('home')
+  const [mode, setMode] = useState(null)
 
-  if (screen === 'edge') {
-    return <CameraView onBack={() => setScreen('home')} />
+  if (mode) {
+    return <CameraView mode={mode} onBack={() => setMode(null)} />
   }
 
-  return <Home onLaunchEdge={() => setScreen('edge')} />
+  return <Home onLaunchMode={(key) => setMode(key)} />
 }
 
 export default App

@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import cv from '@techstark/opencv-js'
 import { useOpenCv } from '../hooks/useOpenCv.js'
+import { processors } from '../processors/index.js'
 
-export default function CameraView({ onBack }) {
+export default function CameraView({ mode = 'edge', onBack }) {
+  const activeMeta = processors[mode] || processors.edge
+  const activeProcessorRef = useRef(activeMeta)
+
+  useEffect(() => {
+    activeProcessorRef.current = processors[mode] || processors.edge
+  }, [mode])
+
   const videoRef = useRef(null)
   const captureCanvasRef = useRef(null)
   const outputCanvasRef = useRef(null)
@@ -153,25 +161,28 @@ export default function CameraView({ onBack }) {
           const src = cv.imread(captureCanvas)
           const gray = new cv.Mat()
           const blurred = new cv.Mat()
-          const edges = new cv.Mat()
 
           cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY)
 
           const ksize = new cv.Size(5, 5)
           cv.GaussianBlur(gray, blurred, ksize, 0, 0, cv.BORDER_DEFAULT)
 
-          cv.Canny(blurred, edges, lowThreshRef.current, highThreshRef.current)
+          const result = activeProcessorRef.current.run(cv, {
+            src, gray, blurred,
+            lowThresh: lowThreshRef.current,
+            highThresh: highThreshRef.current,
+          })
 
-          if (outputCanvas.width !== edges.cols || outputCanvas.height !== edges.rows) {
-            outputCanvas.width = edges.cols
-            outputCanvas.height = edges.rows
+          if (outputCanvas.width !== result.cols || outputCanvas.height !== result.rows) {
+            outputCanvas.width = result.cols
+            outputCanvas.height = result.rows
           }
-          cv.imshow(outputCanvas, edges)
+          cv.imshow(outputCanvas, result)
 
           src.delete()
           gray.delete()
           blurred.delete()
-          edges.delete()
+          result.delete()
 
           frameCountRef.current += 1
           const now = performance.now()
@@ -266,7 +277,7 @@ export default function CameraView({ onBack }) {
         <button className="back-btn icon-rotate" style={counterRotateStyle} onClick={onBack}>
           ← Back
         </button>
-        <span className="mode-pill">Edge Detection · Canny</span>
+        <span className="mode-pill">{activeMeta.label}</span>
         <span className="fps-pill icon-rotate" style={counterRotateStyle}>
           {!cvReady ? 'loading cv…' : status === 'ready' ? `${fps} fps` : status}
         </span>
@@ -288,31 +299,31 @@ export default function CameraView({ onBack }) {
         </div>
       )}
 
-      {status === 'ready' && (
-        <>
-          <div className="threshold-panel">
-            <div className="threshold-row">
-              <span className="threshold-label">low</span>
-              <input type="range" min="0" max="255" value={lowThresh} onChange={handleLowChange} />
-              <span className="threshold-value">{lowThresh}</span>
-            </div>
-            <div className="threshold-row">
-              <span className="threshold-label">high</span>
-              <input type="range" min="0" max="255" value={highThresh} onChange={handleHighChange} />
-              <span className="threshold-value">{highThresh}</span>
-            </div>
+      {status === 'ready' && activeMeta.needsThresholds && (
+        <div className="threshold-panel">
+          <div className="threshold-row">
+            <span className="threshold-label">low</span>
+            <input type="range" min="0" max="255" value={lowThresh} onChange={handleLowChange} />
+            <span className="threshold-value">{lowThresh}</span>
           </div>
+          <div className="threshold-row">
+            <span className="threshold-label">high</span>
+            <input type="range" min="0" max="255" value={highThresh} onChange={handleHighChange} />
+            <span className="threshold-value">{highThresh}</span>
+          </div>
+        </div>
+      )}
 
-          <div className="shutter-bar">
-            <button className="flip-btn icon-rotate" style={counterRotateStyle} onClick={handleFlipCamera} title="Switch camera">
-              ⟳
-            </button>
-            <button className="shutter-btn" onClick={handleCapture} title="Capture">
-              <span className="shutter-btn-inner icon-rotate" style={counterRotateStyle} />
-            </button>
-            <span className="shutter-spacer" />
-          </div>
-        </>
+      {status === 'ready' && (
+        <div className="shutter-bar">
+          <button className="flip-btn icon-rotate" style={counterRotateStyle} onClick={handleFlipCamera} title="Switch camera">
+            ⟳
+          </button>
+          <button className="shutter-btn" onClick={handleCapture} title="Capture">
+            <span className="shutter-btn-inner icon-rotate" style={counterRotateStyle} />
+          </button>
+          <span className="shutter-spacer" />
+        </div>
       )}
 
       {status === 'error' && (
