@@ -1,6 +1,6 @@
-import { processorList } from '../processors/index.js'
+import { categories, processorsInCategory } from '../processors/index.js'
 
-export default function Home({ onLaunchMode }) {
+export default function Home({ onSelectCategory }) {
   return (
     <div className="home">
       <div className="home-glow" />
@@ -10,31 +10,28 @@ export default function Home({ onLaunchMode }) {
         <h1 className="home-title">
           Funny <span>Camera</span>
         </h1>
-        <p className="home-sub">Pick a lens mode to launch</p>
+        <p className="home-sub">Pick a category</p>
       </header>
 
       <div className="mode-grid">
-        {processorList.map((p) => (
-          <button
-            key={p.key}
-            className="mode-card mode-card--active"
-            onClick={() => onLaunchMode(p.key)}
-          >
-            <span className="mode-ring">
-              <span className="mode-ring-inner" />
-            </span>
-            <span className="mode-label">{p.label}</span>
-            <span className="mode-desc">live</span>
-          </button>
-        ))}
-
-        <div className="mode-card mode-card--soon">
-          <span className="mode-ring mode-ring--dim">
-            <span className="mode-ring-inner" />
-          </span>
-          <span className="mode-label">Face Detection</span>
-          <span className="mode-desc">coming next</span>
-        </div>
+        {categories.map((cat) => {
+          const count = processorsInCategory(cat.key).length
+          const hasModes = count > 0
+          return (
+            <button
+              key={cat.key}
+              className={`mode-card ${hasModes ? 'mode-card--active' : 'mode-card--soon'}`}
+              onClick={() => hasModes && onSelectCategory(cat.key)}
+              disabled={!hasModes}
+            >
+              <span className={`mode-ring ${hasModes ? '' : 'mode-ring--dim'}`}>
+                <span className="mode-ring-inner" />
+              </span>
+              <span className="mode-label">{cat.label}</span>
+              <span className="mode-desc">{hasModes ? `${count} modes` : 'coming next'}</span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

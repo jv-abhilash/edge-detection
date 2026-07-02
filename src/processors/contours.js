@@ -2,6 +2,7 @@ export const contours = {
   key: 'contours',
   label: 'Contours',
   needsThresholds: true,
+  category: 'nonml',
   run(cv, { blurred, src, lowThresh, highThresh }) {
     const edges = new cv.Mat()
     cv.Canny(blurred, edges, lowThresh, highThresh)
