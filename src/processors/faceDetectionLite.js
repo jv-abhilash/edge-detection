@@ -3,41 +3,41 @@ let workerReady = false
 let workerBusy = false
 let cachedBoxes = []
 let frameCounter = 0
-let lastInferenceMs = null
 
 function getWorker() {
   if (worker) return worker
 
-  worker = new Worker('/faceDetectionWorker.js')
+  worker = new Worker('/faceDetectionLiteWorker.js')
   worker.onmessage = (e) => {
     const msg = e.data
     if (msg.type === 'ready') {
       workerReady = true
-      console.log('[faceDetectionDNN] worker ready')
+      console.log('[faceDetectionLite] worker ready')
+    } else if (msg.type === 'debug') {
+      console.log('[faceDetectionLite] debug:', msg.message)
     } else if (msg.type === 'result') {
       cachedBoxes = msg.boxes
-      lastInferenceMs = msg.inferenceMs
       workerBusy = false
-      console.log(`[faceDetectionDNN] worker inference took ${msg.inferenceMs.toFixed(1)}ms, ${msg.boxes.length} box(es)`)
+      console.log(`[faceDetectionLite] inference took ${msg.inferenceMs.toFixed(1)}ms, ${msg.boxes.length} box(es)`)
     } else if (msg.type === 'error') {
-      console.error('[faceDetectionDNN] worker error:', msg.error)
+      console.error('[faceDetectionLite] worker error:', msg.error)
       workerBusy = false
     }
   }
   worker.onerror = (err) => {
-    console.error('[faceDetectionDNN] worker crashed:', err.message)
+    console.error('[faceDetectionLite] worker crashed:', err.message)
     workerBusy = false
   }
   worker.postMessage({ type: 'init' })
   return worker
 }
 
-export const faceDetectionDNN = {
-  key: 'faceDnn',
-  label: 'Face Detection (Heavy)',
+export const faceDetectionLite = {
+  key: 'faceLite',
+  label: 'Face Detection (Lite)',
   category: 'ml',
   needsThresholds: true,
-  info: 'Runs entirely in a Web Worker — a separate background thread — so the ~4 second neural network forward pass never freezes the live camera preview. Boxes update whenever the worker finishes, independent of the render loop.',
+  info: 'A ~1MB purpose-built mobile face detector, dramatically lighter than the ResNet10 model — trades some accuracy for a much shorter inference time, shrinking the staleness window between when a face moves and when the box catches up.',
   run(cv, { src, gray, lowThresh }) {
     getWorker()
 
@@ -45,8 +45,8 @@ export const faceDetectionDNN = {
     cv.cvtColor(src, rgb, cv.COLOR_RGBA2RGB)
 
     frameCounter++
-    const inferenceInterval = 20
-    const confThreshold = lowThresh / 255
+    const inferenceInterval = 5
+    const confThreshold = Math.max(0.75, lowThresh / 255)
 
     if (workerReady && !workerBusy && frameCounter % inferenceInterval === 0) {
       workerBusy = true
@@ -62,7 +62,7 @@ export const faceDetectionDNN = {
       const y1 = box.y1 * rgb.rows
       const x2 = box.x2 * rgb.cols
       const y2 = box.y2 * rgb.rows
-      cv.rectangle(rgb, new cv.Point(x1, y1), new cv.Point(x2, y2), new cv.Scalar(255, 170, 60, 255), 2)
+      cv.rectangle(rgb, new cv.Point(x1, y1), new cv.Point(x2, y2), new cv.Scalar(80, 220, 120, 255), 2)
     }
 
     return rgb

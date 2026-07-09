@@ -5,6 +5,15 @@ import { processors } from '../processors/index.js'
 export default function CameraView({ mode = 'edge', onBack }) {
   const cv = window.cv
   const activeMeta = processors[mode] || processors.edge
+
+  const CATEGORY_RESOLUTIONS = {
+    nonml: { width: 1280, height: 720 },
+    ml: { width: 480, height: 360 },
+    heavy: { width: 640, height: 480 },
+  }
+  const captureRes = CATEGORY_RESOLUTIONS[activeMeta.category] || CATEGORY_RESOLUTIONS.nonml
+  const captureWidth = captureRes.width
+  const captureHeight = captureRes.height
   const activeProcessorRef = useRef(activeMeta)
 
   useEffect(() => {
@@ -124,7 +133,7 @@ export default function CameraView({ mode = 'edge', onBack }) {
         }
 
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: { facingMode, width: { ideal: captureWidth }, height: { ideal: captureHeight } },
           audio: false,
         })
         if (cancelled) {
@@ -206,7 +215,7 @@ export default function CameraView({ mode = 'edge', onBack }) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop())
     }
-  }, [cvReady, facingMode])
+  }, [cvReady, facingMode, captureWidth, captureHeight])
 
   function handleLowChange(e) {
     const v = Number(e.target.value)
