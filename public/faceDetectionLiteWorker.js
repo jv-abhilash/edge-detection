@@ -141,13 +141,21 @@ function detect(width, height, buffer, confThreshold) {
     const decoded = decodeBoxes(rawBoxes, priors)
 
     const candidates = []
+    let topScoreIdx0 = 0
+    let topScoreIdx1 = 0
     for (let i = 0; i < priors.length; i++) {
+      const scoreIdx0 = rawScores[i * 2 + 0]
+      const scoreIdx1 = rawScores[i * 2 + 1]
+      if (scoreIdx0 > topScoreIdx0) topScoreIdx0 = scoreIdx0
+      if (scoreIdx1 > topScoreIdx1) topScoreIdx1 = scoreIdx1
+
       const faceScore = rawScores[i * 2 + 1]
       if (faceScore >= confThreshold) {
         candidates.push({ ...decoded[i], score: faceScore })
       }
     }
     resultBoxes = nonMaxSuppression(candidates, 0.3)
+    postMessage({ type: 'debug', message: `idx0(bg?) top=${topScoreIdx0.toFixed(3)}  idx1(face?) top=${topScoreIdx1.toFixed(3)}  threshold=${confThreshold.toFixed(3)} candidates=${candidates.length} afterNMS=${resultBoxes.length}` })
   } else {
     postMessage({ type: 'debug', message: `output size mismatch — boxes total=${rawBoxesMat.total()} (expected ${priors.length*4}), scores total=${rawScoresMat.total()} (expected ${priors.length*2})` })
   }

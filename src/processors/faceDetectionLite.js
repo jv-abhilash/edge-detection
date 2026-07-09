@@ -34,7 +34,7 @@ function getWorker() {
 
 export const faceDetectionLite = {
   key: 'faceLite',
-  label: 'Face Detection (Lite)',
+  label: 'Face Detection (Lite, WIP)',
   category: 'ml',
   needsThresholds: true,
   info: 'A ~1MB purpose-built mobile face detector, dramatically lighter than the ResNet10 model — trades some accuracy for a much shorter inference time, shrinking the staleness window between when a face moves and when the box catches up.',
