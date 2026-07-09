@@ -5,16 +5,20 @@ import ModeList from './screens/ModeList.jsx'
 import CameraView from './screens/CameraView.jsx'
 import './App.css'
 
+const CATEGORIES_WITH_TIERS = ['nonml']
+
 function App() {
   const [category, setCategory] = useState(null)
   const [tier, setTier] = useState(null)
   const [mode, setMode] = useState(null)
 
-  if (category && tier && mode) {
+  const usesTiers = category && CATEGORIES_WITH_TIERS.includes(category)
+
+  if (category && mode) {
     return <CameraView mode={mode} onBack={() => setMode(null)} />
   }
 
-  if (category && tier) {
+  if (usesTiers && tier) {
     return (
       <ModeList
         categoryKey={category}
@@ -25,11 +29,21 @@ function App() {
     )
   }
 
-  if (category) {
+  if (usesTiers) {
     return (
       <TierList
         categoryKey={category}
         onSelectTier={(key) => setTier(key)}
+        onBack={() => setCategory(null)}
+      />
+    )
+  }
+
+  if (category) {
+    return (
+      <ModeList
+        categoryKey={category}
+        onLaunchMode={(key) => setMode(key)}
         onBack={() => setCategory(null)}
       />
     )

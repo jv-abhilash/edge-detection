@@ -15,6 +15,7 @@ import { backgroundSubtraction } from './backgroundSubtraction.js'
 import { lightTrail } from './lightTrail.js'
 import { documentScanner } from './documentScanner.js'
 import { qrScanner } from './qrScanner.js'
+import { faceDetectionDNN } from './faceDetectionDNN.js'
 
 export const processors = {
   edge: edgeDetection,
@@ -34,6 +35,7 @@ export const processors = {
   lightTrail: lightTrail,
   docScanner: documentScanner,
   qrScanner: qrScanner,
+  faceDnn: faceDetectionDNN,
 }
 
 export const processorList = Object.values(processors)

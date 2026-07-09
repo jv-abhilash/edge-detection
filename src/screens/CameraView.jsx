@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import cv from '@techstark/opencv-js'
 import { useOpenCv } from '../hooks/useOpenCv.js'
 import { processors } from '../processors/index.js'
 
 export default function CameraView({ mode = 'edge', onBack }) {
+  const cv = window.cv
   const activeMeta = processors[mode] || processors.edge
   const activeProcessorRef = useRef(activeMeta)
 
