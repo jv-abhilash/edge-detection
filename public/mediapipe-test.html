@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>MediaPipe Isolation Test</title>
+  <style>
+    body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
+    #log { white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
+    .ok { color: #7fff7f; }
+    .err { color: #ff7f7f; }
+  </style>
+</head>
+<body>
+  <h2>MediaPipe Isolation Test</h2>
+  <p>No camera, no React, no Capacitor — just: does the WASM module load?</p>
+  <div id="log">starting...\n</div>
+
+  <script type="module">
+    const logEl = document.getElementById('log')
+    function log(msg, cls) {
+      const line = document.createElement('div')
+      if (cls) line.className = cls
+      line.textContent = `[${new Date().toISOString().split('T')[1].slice(0,12)}] ${msg}`
+      logEl.appendChild(line)
+      console.log(msg)
+    }
+
+    log('page loaded, loading OpenCV.js first (to replicate the real app)...')
+
+    const opencvScript = document.createElement('script')
+    opencvScript.src = '/opencv/opencv.js'
+    opencvScript.onload = () => {
+      log('opencv.js script tag loaded, waiting for runtime init...')
+      window.cv['onRuntimeInitialized'] = () => {
+        log('OpenCV runtime ready — NOW attempting MediaPipe...', 'ok')
+        runMediaPipeTest()
+      }
+    }
+    opencvScript.onerror = () => log('opencv.js failed to load', 'err')
+    document.body.appendChild(opencvScript)
+
+    function runMediaPipeTest() {
+      import('/mediapipe/vision_bundle.mjs')
+        .then(async (module) => {
+          log('mediapipe package imported OK', 'ok')
+          const { FaceDetector } = module
+
+          const vision = {
+            wasmLoaderPath: '/mediapipe/vision_wasm_nosimd_internal.js',
+            wasmBinaryPath: '/mediapipe/vision_wasm_nosimd_internal.wasm',
+          }
+          log('about to call FaceDetector.createFromOptions WITH OpenCV already loaded...')
+
+          const detector = await FaceDetector.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: '/models/blaze_face_short_range.tflite',
+              delegate: 'CPU',
+            },
+            runningMode: 'IMAGE',
+          })
+
+          log('DETECTOR CREATED SUCCESSFULLY EVEN WITH OPENCV LOADED', 'ok')
+          window.__detector = detector
+        })
+        .catch((err) => {
+          log('FAILED: ' + (err && err.message ? err.message : String(err)), 'err')
+          console.error(err)
+        })
+    }
+  </script>
+</body>
+</html>

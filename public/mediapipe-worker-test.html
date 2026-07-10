@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>MediaPipe Worker Test</title>
+  <style>
+    body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
+    #log { white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
+    .ok { color: #7fff7f; }
+    .err { color: #ff7f7f; }
+  </style>
+</head>
+<body>
+  <h2>MediaPipe Worker Test (OpenCV loaded on main thread, MediaPipe fully isolated in a Worker)</h2>
+  <div id="log">starting...\n</div>
+
+  <script type="module">
+    const logEl = document.getElementById('log')
+    function log(msg, cls) {
+      const line = document.createElement('div')
+      if (cls) line.className = cls
+      line.textContent = `[${new Date().toISOString().split('T')[1].slice(0,12)}] ${msg}`
+      logEl.appendChild(line)
+      console.log(msg)
+    }
+
+    log('loading OpenCV.js on the MAIN thread (same as the real app)...')
+    const opencvScript = document.createElement('script')
+    opencvScript.src = '/opencv/opencv.js'
+    opencvScript.onload = () => {
+      log('opencv.js script tag loaded, waiting for runtime init...')
+      window.cv['onRuntimeInitialized'] = () => {
+        log('OpenCV runtime ready on main thread.', 'ok')
+        startWorkerTest()
+      }
+    }
+    document.body.appendChild(opencvScript)
+
+    function startWorkerTest() {
+      log('starting MediaPipe Worker (separate thread, own global scope)...')
+      const worker = new Worker('/faceDetectionMediaPipeWorker.js')
+
+      worker.onmessage = (e) => {
+        const msg = e.data
+        if (msg.type === 'log') {
+          log(msg.message)
+        } else if (msg.type === 'ready') {
+          log('WORKER DETECTOR READY — SUCCESS', 'ok')
+        } else if (msg.type === 'error') {
+          log('WORKER ERROR: ' + msg.error, 'err')
+        }
+      }
+      worker.onerror = (err) => {
+        log('WORKER CRASHED: ' + err.message, 'err')
+      }
+
+      worker.postMessage({ type: 'init' })
+    }
+  </script>
+</body>
+</html>

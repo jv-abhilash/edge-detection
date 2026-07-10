@@ -17,6 +17,7 @@ import { documentScanner } from './documentScanner.js'
 import { qrScanner } from './qrScanner.js'
 import { faceDetectionDNN } from './faceDetectionDNN.js'
 import { faceDetectionLite } from './faceDetectionLite.js'
+import { faceDetectionMediaPipe } from './faceDetectionMediaPipe.js'
 
 export const processors = {
   edge: edgeDetection,
@@ -38,6 +39,7 @@ export const processors = {
   qrScanner: qrScanner,
   faceDnn: faceDetectionDNN,
   faceLite: faceDetectionLite,
+  faceMediaPipe: faceDetectionMediaPipe,
 }
 
 export const processorList = Object.values(processors)

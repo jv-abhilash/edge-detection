@@ -178,7 +178,7 @@ export default function CameraView({ mode = 'edge', onBack }) {
           cv.GaussianBlur(gray, blurred, ksize, 0, 0, cv.BORDER_DEFAULT)
 
           const result = activeProcessorRef.current.run(cv, {
-            src, gray, blurred,
+            src, gray, blurred, video,
             lowThresh: lowThreshRef.current,
             highThresh: highThreshRef.current,
           })

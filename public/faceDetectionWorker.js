@@ -79,18 +79,29 @@ function detect(width, height, buffer, confThreshold) {
   postMessage({ type: 'result', boxes, inferenceMs })
 }
 
+function describeError(err) {
+  try {
+    if (typeof err === 'number' && self.cv && self.cv.exceptionFromPtr) {
+      return self.cv.exceptionFromPtr(err).msg
+    }
+  } catch (decodeErr) {
+    return `(undecodable pointer ${err}, decode failed: ${decodeErr})`
+  }
+  return err && err.message ? err.message : String(err)
+}
+
 self.onmessage = (e) => {
   const msg = e.data
   if (msg.type === 'init') {
     init().catch((err) => {
-      postMessage({ type: 'error', error: String(err && err.message ? err.message : err) })
+      postMessage({ type: 'error', error: describeError(err) })
     })
   } else if (msg.type === 'detect') {
     if (!cvReady) return
     try {
       detect(msg.width, msg.height, msg.buffer, msg.confThreshold)
     } catch (err) {
-      postMessage({ type: 'error', error: String(err && err.message ? err.message : err) })
+      postMessage({ type: 'error', error: describeError(err) })
     }
   }
 }
