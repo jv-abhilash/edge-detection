@@ -21,7 +21,7 @@ async function init() {
       delegate: 'CPU',
     },
     runningMode: 'IMAGE',
-    numFaces: 1,
+    numFaces: 4,
   })
 
   postMessage({ type: 'log', message: 'worker: both models ready' })
@@ -42,10 +42,10 @@ function detectMesh(width, height, buffer) {
   const t0 = performance.now()
   const result = faceLandmarker.detect(imgData)
   const inferenceMs = performance.now() - t0
-  const landmarks = (result.faceLandmarks && result.faceLandmarks[0])
-    ? result.faceLandmarks[0].map((p) => ({ x: p.x, y: p.y }))
-    : []
-  postMessage({ type: 'result', mode: 'mesh', landmarks, inferenceMs })
+  const faces = (result.faceLandmarks || []).map((face) =>
+    face.map((p) => ({ x: p.x, y: p.y }))
+  )
+  postMessage({ type: 'result', mode: 'mesh', faces, inferenceMs })
 }
 
 self.onmessage = (e) => {
