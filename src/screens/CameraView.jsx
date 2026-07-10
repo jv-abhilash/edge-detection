@@ -20,6 +20,8 @@ export default function CameraView({ mode = 'edge', onBack }) {
     activeProcessorRef.current = processors[mode] || processors.edge
     activeProcessorRef.current.reset?.()
     setMeshOn(false)
+    setInfoText('')
+    lastInfoTextRef.current = ''
   }, [mode])
 
   const videoRef = useRef(null)
@@ -37,6 +39,8 @@ export default function CameraView({ mode = 'edge', onBack }) {
 
   const [facingMode, setFacingMode] = useState('environment')
   const [meshOn, setMeshOn] = useState(false)
+  const [infoText, setInfoText] = useState('')
+  const lastInfoTextRef = useRef('')
 
   const orientationRef = useRef(0)
   const tiltHandlerRef = useRef(null)
@@ -194,6 +198,14 @@ export default function CameraView({ mode = 'edge', onBack }) {
           src.delete()
           gray.delete()
           blurred.delete()
+
+          if (activeProcessorRef.current.getInfoText) {
+            const text = activeProcessorRef.current.getInfoText()
+            if (text !== lastInfoTextRef.current) {
+              lastInfoTextRef.current = text
+              setInfoText(text)
+            }
+          }
           result.delete()
 
           frameCountRef.current += 1
@@ -330,6 +342,12 @@ export default function CameraView({ mode = 'edge', onBack }) {
             <input type="range" min="0" max="255" value={highThresh} onChange={handleHighChange} />
             <span className="threshold-value">{highThresh}</span>
           </div>
+        </div>
+      )}
+
+      {status === 'ready' && activeMeta.hasInfoPanel && (
+        <div className="info-panel">
+          {infoText || 'Detecting…'}
         </div>
       )}
 
