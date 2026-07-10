@@ -19,6 +19,7 @@ export default function CameraView({ mode = 'edge', onBack }) {
   useEffect(() => {
     activeProcessorRef.current = processors[mode] || processors.edge
     activeProcessorRef.current.reset?.()
+    setMeshOn(false)
   }, [mode])
 
   const videoRef = useRef(null)
@@ -35,6 +36,7 @@ export default function CameraView({ mode = 'edge', onBack }) {
   const [highThresh, setHighThresh] = useState(150)
 
   const [facingMode, setFacingMode] = useState('environment')
+  const [meshOn, setMeshOn] = useState(false)
 
   const orientationRef = useRef(0)
   const tiltHandlerRef = useRef(null)
@@ -233,6 +235,13 @@ export default function CameraView({ mode = 'edge', onBack }) {
     setFacingMode((prev) => (prev === 'environment' ? 'user' : 'environment'))
   }
 
+  function handleMeshToggle() {
+    if (activeProcessorRef.current.toggleMesh) {
+      const nowOn = activeProcessorRef.current.toggleMesh()
+      setMeshOn(nowOn)
+    }
+  }
+
   function handleCapture() {
     const outputCanvas = outputCanvasRef.current
     if (!outputCanvas) return
@@ -332,7 +341,13 @@ export default function CameraView({ mode = 'edge', onBack }) {
           <button className="shutter-btn" onClick={handleCapture} title="Capture">
             <span className="shutter-btn-inner icon-rotate" style={counterRotateStyle} />
           </button>
-          <span className="shutter-spacer" />
+          {activeMeta.hasMeshToggle ? (
+            <button className="flip-btn icon-rotate" style={counterRotateStyle} onClick={handleMeshToggle} title="Toggle box / full mesh">
+              {meshOn ? '▦' : '▢'}
+            </button>
+          ) : (
+            <span className="shutter-spacer" />
+          )}
         </div>
       )}
 

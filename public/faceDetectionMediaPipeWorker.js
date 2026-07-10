@@ -1,12 +1,11 @@
 let faceDetector = null
+let faceLandmarker = null
 
 async function init() {
   postMessage({ type: 'log', message: 'worker: starting init...' })
-  const { FilesetResolver, FaceDetector } = await import('./mediapipe/vision_bundle.mjs')
-  postMessage({ type: 'log', message: 'worker: package imported' })
-
+  const { FilesetResolver, FaceDetector, FaceLandmarker } = await import('./mediapipe/vision_bundle.mjs')
   const vision = await FilesetResolver.forVisionTasks('/mediapipe')
-  postMessage({ type: 'log', message: 'worker: fileset resolved, creating detector...' })
+  postMessage({ type: 'log', message: 'worker: fileset resolved, loading detector + landmarker...' })
 
   faceDetector = await FaceDetector.createFromOptions(vision, {
     baseOptions: {
@@ -15,17 +14,38 @@ async function init() {
     },
     runningMode: 'IMAGE',
   })
-  postMessage({ type: 'log', message: 'worker: detector ready' })
+
+  faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: '/models/face_landmarker.task',
+      delegate: 'CPU',
+    },
+    runningMode: 'IMAGE',
+    numFaces: 1,
+  })
+
+  postMessage({ type: 'log', message: 'worker: both models ready' })
   postMessage({ type: 'ready' })
 }
 
-function detect(width, height, buffer) {
+function detectBox(width, height, buffer) {
   const imgData = new ImageData(new Uint8ClampedArray(buffer), width, height)
   const t0 = performance.now()
   const result = faceDetector.detect(imgData)
   const inferenceMs = performance.now() - t0
   const boxes = result.detections.map((d) => d.boundingBox)
-  postMessage({ type: 'result', boxes, inferenceMs })
+  postMessage({ type: 'result', mode: 'box', boxes, inferenceMs })
+}
+
+function detectMesh(width, height, buffer) {
+  const imgData = new ImageData(new Uint8ClampedArray(buffer), width, height)
+  const t0 = performance.now()
+  const result = faceLandmarker.detect(imgData)
+  const inferenceMs = performance.now() - t0
+  const landmarks = (result.faceLandmarks && result.faceLandmarks[0])
+    ? result.faceLandmarks[0].map((p) => ({ x: p.x, y: p.y }))
+    : []
+  postMessage({ type: 'result', mode: 'mesh', landmarks, inferenceMs })
 }
 
 self.onmessage = (e) => {
@@ -35,9 +55,12 @@ self.onmessage = (e) => {
       postMessage({ type: 'error', error: String(err && err.message ? err.message : err) })
     })
   } else if (msg.type === 'detect') {
-    if (!faceDetector) return
     try {
-      detect(msg.width, msg.height, msg.buffer)
+      if (msg.mode === 'mesh') {
+        detectMesh(msg.width, msg.height, msg.buffer)
+      } else {
+        detectBox(msg.width, msg.height, msg.buffer)
+      }
     } catch (err) {
       postMessage({ type: 'error', error: String(err && err.message ? err.message : err) })
     }
