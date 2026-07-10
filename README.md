@@ -127,7 +127,7 @@ Home  →  Category  →  Tier  →  Mode  →  Camera
 1. DONE — Foundation: camera pipeline, orientation handling, APK packaging
 2. DONE — Non-ML CV: all 4 tiers structurally in place, Pixel/Spatial/Temporal populated
 3. PLANNED — Applied Tools: Document Scanner, QR/Barcode Scanner
-4. PLANNED — ML tier: on-device DNN inference (`cv.dnn`) — face detection, hand landmark/gesture detection, object detection
+4. IN PROGRESS — ML tier: face detection (MediaPipe Tasks Vision — see `docs/ML_README.md` for the full build log), hand landmark/gesture detection next
 5. PLANNED — Mode 18: a complex chained/graph-style mode combining multiple techniques from the base modes
 6. PLANNED — Heavy/Backend: real-time face recognition via a Python/FastAPI backend (embedding generation + distance-based verification against enrolled reference photos)
 
